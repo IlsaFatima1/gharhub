@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+# Private / authenticated areas must not be indexed
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /seller
+Disallow: /profile
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
+
+Sitemap: https://gharhub.site/sitemap.xml

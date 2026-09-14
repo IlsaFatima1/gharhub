@@ -1,0 +1,18 @@
+-- Secure real-time messaging foundation for Supabase/PostgreSQL.
+create extension if not exists pgcrypto;
+create table if not exists public.conversations (id uuid primary key default gen_random_uuid(), property_id text not null, created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+create table if not exists public.conversation_members (conversation_id uuid not null references public.conversations(id) on delete cascade, user_id uuid not null references auth.users(id) on delete cascade, joined_at timestamptz not null default now(), last_read_at timestamptz, primary key(conversation_id,user_id));
+create table if not exists public.messages (id uuid primary key default gen_random_uuid(), conversation_id uuid not null references public.conversations(id) on delete cascade, sender_id uuid not null references auth.users(id) on delete cascade, body text not null default '' check(char_length(body)<=2000), kind text not null check(kind in ('text','image')), image_url text, created_at timestamptz not null default now(), read_at timestamptz, check(body<>'' or image_url is not null));
+create index if not exists messages_conversation_cursor_idx on public.messages(conversation_id,created_at desc,id desc);
+create index if not exists conversation_members_user_idx on public.conversation_members(user_id,conversation_id);
+alter table public.conversations enable row level security;alter table public.conversation_members enable row level security;alter table public.messages enable row level security;
+create policy "members read conversations" on public.conversations for select using(exists(select 1 from public.conversation_members m where m.conversation_id=id and m.user_id=auth.uid()));
+create policy "members read membership" on public.conversation_members for select using(user_id=auth.uid() or exists(select 1 from public.conversation_members mine where mine.conversation_id=conversation_id and mine.user_id=auth.uid()));
+create policy "members read messages" on public.messages for select using(exists(select 1 from public.conversation_members m where m.conversation_id=messages.conversation_id and m.user_id=auth.uid()));
+create policy "members send messages" on public.messages for insert with check(sender_id=auth.uid() and exists(select 1 from public.conversation_members m where m.conversation_id=messages.conversation_id and m.user_id=auth.uid()));
+create policy "recipient updates receipts" on public.messages for update using(sender_id<>auth.uid() and exists(select 1 from public.conversation_members m where m.conversation_id=messages.conversation_id and m.user_id=auth.uid())) with check(sender_id<>auth.uid());
+create or replace function public.mark_conversation_read(target_conversation uuid) returns void language sql security invoker set search_path=public as $$ update messages set read_at=coalesce(read_at,now()) where conversation_id=target_conversation and sender_id<>auth.uid();update conversation_members set last_read_at=now() where conversation_id=target_conversation and user_id=auth.uid();$$;
+insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types) values('message-images','message-images',false,10485760,array['image/jpeg','image/png','image/webp']) on conflict(id) do update set public=false,file_size_limit=10485760,allowed_mime_types=excluded.allowed_mime_types;
+create policy "users upload own message images" on storage.objects for insert to authenticated with check(bucket_id='message-images' and (storage.foldername(name))[1]=auth.uid()::text);
+create policy "conversation users read message images" on storage.objects for select to authenticated using(bucket_id='message-images');
+alter publication supabase_realtime add table public.messages;

@@ -1,0 +1,4 @@
+export type NotificationType='new_message'|'property_approved'|'property_rejected'|'property_sold'|'favorite_updated'|'favorite'|'unfavorite'|'support'|'role_request'
+export type AppNotification={id:string;userId:string;type:NotificationType;title:string;body:string;actionUrl:string|null;imageUrl:string|null;readAt:string|null;createdAt:string;metadata:Record<string,string>}
+export type NotificationPreferences={inApp:boolean;email:boolean;new_message:boolean;property_approved:boolean;property_rejected:boolean;property_sold:boolean;favorite_updated:boolean;favorite:boolean;unfavorite:boolean;support:boolean;role_request:boolean}
+export const defaultPreferences:NotificationPreferences={inApp:true,email:true,new_message:true,property_approved:true,property_rejected:true,property_sold:true,favorite_updated:true,favorite:true,unfavorite:true,support:true,role_request:true}

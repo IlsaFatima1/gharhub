@@ -1,0 +1,17 @@
+-- Fix Discover/Search: published properties could not be read by session-less
+-- (anon) requests, so the Discover page stayed empty even though real published
+-- listings existed in Supabase.
+--
+-- Root cause: the RLS select policy "public reads published properties" on
+-- public.properties calls public.is_admin(), but execute on that function was
+-- only granted to the authenticated role. PostgreSQL evaluates the whole policy
+-- expression for the requesting role, so any request without an authenticated
+-- session failed with:
+--     permission denied for function is_admin
+-- and the entire SELECT was rejected instead of returning published rows.
+--
+-- is_admin() is SECURITY DEFINER and only inspects auth.jwt(), so it is safe to
+-- execute for anon as well. Apply this migration in the Supabase SQL Editor to
+-- fix an existing project (fresh setups pick up the corrected grant inside
+-- 20260326_admin.sql automatically).
+grant execute on function public.is_admin() to anon, authenticated, service_role;
