@@ -23,6 +23,7 @@ export type AuthContextValue = {
   updateProfile: (name: string) => Promise<void>
   resetPassword: (email: string) => Promise<{ error?: string; success?: boolean }>
   updatePassword: (newPassword: string) => Promise<{ error?: string; success?: boolean }>
+  cancelRecovery: () => Promise<void>
   refreshProfile: () => Promise<void>
 }
 
@@ -99,6 +100,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch {
           setUser(mapUser(data.session.user))
         }
+      } else {
+        writeRecoveryFlag(false)
+        setIsRecovery(false)
       }
       setLoading(false)
     })
@@ -119,8 +123,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (event === 'SIGNED_IN') {
           writeRecoveryFlag(false)
           setIsRecovery(false)
-        } else if (readRecoveryFlag()) {
-          setIsRecovery(true)
+        } else if (session?.user) {
+          if (readRecoveryFlag()) setIsRecovery(true)
+        } else {
+          writeRecoveryFlag(false)
+          setIsRecovery(false)
         }
         if (session?.user) {
           try {
@@ -205,6 +212,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { success: true }
   }, [])
 
+  const cancelRecovery = useCallback(async () => {
+    writeRecoveryFlag(false)
+    setIsRecovery(false)
+    setUser(null)
+    if (supabase) {
+      try {
+        await supabase.auth.signOut({ scope: 'local' })
+      } catch {
+        return
+      }
+    }
+  }, [])
+
   const value = useMemo<AuthContextValue>(() => ({
     user,
     loading,
@@ -215,8 +235,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     updateProfile,
     resetPassword,
     updatePassword,
+    cancelRecovery,
     refreshProfile,
-  }), [user, loading, isRecovery, signIn, signUp, signOut, updateProfile, resetPassword, updatePassword, refreshProfile])
+  }), [user, loading, isRecovery, signIn, signUp, signOut, updateProfile, resetPassword, updatePassword, cancelRecovery, refreshProfile])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

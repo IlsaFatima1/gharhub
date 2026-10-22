@@ -144,7 +144,7 @@ export function ForgotPasswordPage() {
 }
 
 export function ResetPasswordPage() {
-  const { user, loading: authLoading, updatePassword } = useAuth()
+  const { user, loading: authLoading, updatePassword, cancelRecovery } = useAuth()
   const navigate = useNavigate()
   const { toast } = useToast()
   const [show, setShow] = useState(false)
@@ -185,13 +185,18 @@ export function ResetPasswordPage() {
 
   const linkInvalid = expiredLink || (noSession && !done)
 
+  const backToSignIn = async () => {
+    await cancelRecovery()
+    navigate('/login')
+  }
+
   return <AuthShell title="Set new password" subtitle="Choose a strong password for your account.">
     {linkInvalid ? <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="space-y-5 text-center"><motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200, delay: 0.1 }} className="mx-auto grid size-16 place-items-center rounded-3xl bg-rose-50 text-rose-600 dark:bg-rose-950"><KeyRound className="size-7"/></motion.div><h2 className="font-display text-xl font-semibold">Link expired</h2><p className="mx-auto max-w-sm text-sm text-slate-500">This password reset link is invalid, expired, or was already used. Reset links work only once, so please request a fresh one.</p><Button className="mx-auto" onClick={() => navigate('/forgot-password')}>Request a new link <ArrowRight className="size-4"/></Button></motion.div> : done ? <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="space-y-5 text-center"><motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200, delay: 0.1 }} className="mx-auto grid size-16 place-items-center rounded-3xl bg-teal-50 text-teal-600 dark:bg-teal-950"><LockKeyhole className="size-7"/></motion.div><h2 className="font-display text-xl font-semibold">Password updated</h2><p className="mx-auto max-w-sm text-sm text-slate-500">Your password has been changed successfully. You can now continue to your dashboard.</p><Button className="mx-auto" onClick={() => navigate('/dashboard')}>Continue to dashboard <ArrowRight className="size-4"/></Button></motion.div> : <form onSubmit={submit} className="space-y-5">
       <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}><Field label="New password" error={undefined}><div className="relative"><Input type={show ? 'text' : 'password'} autoComplete="new-password" placeholder="At least 8 characters" value={password} onChange={e => setPassword(e.target.value)}/><button type="button" className="absolute right-3 top-3 text-slate-400" onClick={() => setShow(!show)} aria-label="Toggle password visibility">{show ? <EyeOff className="size-5"/> : <Eye className="size-5"/>}</button></div></Field></motion.div>
       <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }}><Field label="Confirm password" error={undefined}><Input type={show ? 'text' : 'password'} autoComplete="new-password" placeholder="Repeat your password" value={confirm} onChange={e => setConfirm(e.target.value)}/></Field></motion.div>
       {error && <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}><ErrorBox message={error}/></motion.div>}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}><Button className="w-full" disabled={loading || authLoading}>{loading || authLoading ? <LoaderCircle className="size-4 animate-spin"/> : <>Update password <ArrowRight className="size-4"/></>}</Button></motion.div>
-      <p className="text-center text-sm text-slate-500"><Link to="/login" className="font-semibold text-teal-700 hover:underline">Back to sign in</Link></p>
+      <p className="text-center text-sm text-slate-500"><button type="button" onClick={backToSignIn} className="font-semibold text-teal-700 hover:underline">Back to sign in</button></p>
     </form>}
   </AuthShell>
 }
