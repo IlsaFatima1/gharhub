@@ -16,6 +16,7 @@ export type User = {
 export type AuthContextValue = {
   user: User | null
   loading: boolean
+  isRecovery: boolean
   signIn: (email: string, password: string) => Promise<{ error?: string }>
   signUp: (name: string, email: string, password: string, marketplaceRole: MarketplaceRole) => Promise<{ error?: string }>
   signOut: () => Promise<void>
@@ -52,6 +53,25 @@ function friendlyError(message: string): string {
   return 'Something went wrong. Please try again.'
 }
 
+const RECOVERY_STORAGE_KEY = 'gharhub:password-recovery'
+
+function readRecoveryFlag(): boolean {
+  try {
+    return window.localStorage.getItem(RECOVERY_STORAGE_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function writeRecoveryFlag(value: boolean): void {
+  try {
+    if (value) window.localStorage.setItem(RECOVERY_STORAGE_KEY, '1')
+    else window.localStorage.removeItem(RECOVERY_STORAGE_KEY)
+  } catch {
+    return
+  }
+}
+
 async function fetchProfile(userId: string): Promise<{ full_name: string; avatar_url: string | null; marketplace_role: MarketplaceRole } | null> {
   if (!supabase) return null
   const { data } = await supabase.from('profiles').select('full_name, avatar_url, marketplace_role').eq('user_id', userId).maybeSingle()
@@ -62,6 +82,7 @@ async function fetchProfile(userId: string): Promise<{ full_name: string; avatar
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isRecovery, setIsRecovery] = useState(false)
 
   useEffect(() => {
     if (!supabase) {
@@ -71,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     supabase.auth.getSession().then(async ({ data }) => {
       if (data.session?.user) {
+        if (readRecoveryFlag()) setIsRecovery(true)
         try {
           const profile = await fetchProfile(data.session.user.id)
           setUser(mapUser(data.session.user, profile))
@@ -82,7 +104,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
 
     const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      if (event === 'PASSWORD_RECOVERY') {
+        writeRecoveryFlag(true)
+        setIsRecovery(true)
+        if (session?.user) {
+          try {
+            const profile = await fetchProfile(session.user.id)
+            setUser(mapUser(session.user, profile))
+          } catch {
+            setUser(mapUser(session.user))
+          }
+        }
+      } else if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        if (event === 'SIGNED_IN') {
+          writeRecoveryFlag(false)
+          setIsRecovery(false)
+        } else if (readRecoveryFlag()) {
+          setIsRecovery(true)
+        }
         if (session?.user) {
           try {
             const profile = await fetchProfile(session.user.id)
@@ -92,6 +131,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
       } else if (event === 'SIGNED_OUT') {
+        writeRecoveryFlag(false)
+        setIsRecovery(false)
         setUser(null)
       }
       setLoading(false)
@@ -159,12 +200,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) return { error: 'Authentication is not configured.' }
     const { error } = await supabase.auth.updateUser({ password: newPassword })
     if (error) return { error: friendlyError(error.message) }
+    writeRecoveryFlag(false)
+    setIsRecovery(false)
     return { success: true }
   }, [])
 
   const value = useMemo<AuthContextValue>(() => ({
     user,
     loading,
+    isRecovery,
     signIn,
     signUp,
     signOut,
@@ -172,7 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     resetPassword,
     updatePassword,
     refreshProfile,
-  }), [user, loading, signIn, signUp, signOut, updateProfile, resetPassword, updatePassword, refreshProfile])
+  }), [user, loading, isRecovery, signIn, signUp, signOut, updateProfile, resetPassword, updatePassword, refreshProfile])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

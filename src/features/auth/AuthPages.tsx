@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
@@ -48,14 +48,14 @@ function AuthShell({ children, title, subtitle }: { children: React.ReactNode; t
 }
 
 export function LoginPage() {
-  const { user, signIn } = useAuth()
+  const { user, signIn, isRecovery } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const { toast } = useToast()
   const [show, setShow] = useState(false)
   const from = (location.state as { from?: string })?.from ?? '/dashboard'
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<LoginFields>({ resolver: zodResolver(loginSchema) })
-  if (user) return <Navigate to={from} replace />
+  if (user) return <Navigate to={isRecovery ? '/reset-password' : from} replace />
   const submit = async (values: LoginFields) => {
     const result = await signIn(values.email, values.password)
     if (result.error) { setError('root', { message: result.error }); return }
@@ -139,12 +139,12 @@ export function ForgotPasswordPage() {
   }
 
   return <AuthShell title="Reset your password" subtitle="Enter the email address associated with your account.">
-    {sent ? <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="space-y-5 text-center"><motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200, delay: 0.1 }} className="mx-auto grid size-16 place-items-center rounded-3xl bg-teal-50 text-teal-600 dark:bg-teal-950"><Mail className="size-7"/></motion.div><h2 className="font-display text-xl font-semibold">Check your email</h2><p className="mx-auto max-w-sm text-sm text-slate-500">We sent a password reset link to <strong>{email}</strong>. Follow the link to set a new password. The link expires in 1 hour.</p><p className="text-xs text-slate-400">Didn't receive it? Check your spam folder or <button onClick={() => setSent(false)} className="font-semibold text-teal-700 hover:underline">try another email</button>.</p></motion.div> : <form onSubmit={submit} className="space-y-5"><p className="text-sm text-slate-500">We'll send a reset link you can use to create a new password.</p><motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}><Field label="Email address" error={undefined}><Input type="email" autoComplete="email" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} required/></Field></motion.div><motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}><Button className="w-full" disabled={loading || !email}>{loading ? <LoaderCircle className="size-4 animate-spin"/> : <>Send reset link <ArrowRight className="size-4"/></>}</Button></motion.div><p className="text-center text-sm text-slate-500"><Link to="/login" className="font-semibold text-teal-700 hover:underline">Back to sign in</Link></p></form>}
+    {sent ? <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="space-y-5 text-center"><motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200, delay: 0.1 }} className="mx-auto grid size-16 place-items-center rounded-3xl bg-teal-50 text-teal-600 dark:bg-teal-950"><Mail className="size-7"/></motion.div><h2 className="font-display text-xl font-semibold">Check your email</h2><p className="mx-auto max-w-sm text-sm text-slate-500">We sent a password reset link to <strong>{email}</strong>. Follow the link to set a new password. The link expires in 1 hour and can only be used once.</p><p className="text-xs text-slate-400">Didn't receive it? Check your spam folder or <button onClick={() => setSent(false)} className="font-semibold text-teal-700 hover:underline">try another email</button>.</p></motion.div> : <form onSubmit={submit} className="space-y-5"><p className="text-sm text-slate-500">We'll send a reset link you can use to create a new password.</p><motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}><Field label="Email address" error={undefined}><Input type="email" autoComplete="email" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} required/></Field></motion.div><motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}><Button className="w-full" disabled={loading || !email}>{loading ? <LoaderCircle className="size-4 animate-spin"/> : <>Send reset link <ArrowRight className="size-4"/></>}</Button></motion.div><p className="text-center text-sm text-slate-500"><Link to="/login" className="font-semibold text-teal-700 hover:underline">Back to sign in</Link></p></form>}
   </AuthShell>
 }
 
 export function ResetPasswordPage() {
-  const { updatePassword } = useAuth()
+  const { user, loading: authLoading, updatePassword } = useAuth()
   const navigate = useNavigate()
   const { toast } = useToast()
   const [show, setShow] = useState(false)
@@ -153,6 +153,21 @@ export function ResetPasswordPage() {
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
+  const [noSession, setNoSession] = useState(false)
+  const [expiredLink] = useState(() => {
+    const h = window.location.hash.toLowerCase()
+    return h.includes('error_code=otp_expired') || h.includes('error=') || h.includes('access_denied')
+  })
+
+  useEffect(() => {
+    if (authLoading || user) return
+    setNoSession(true)
+  }, [authLoading, user])
+
+  useEffect(() => {
+    if (!expiredLink || !window.location.hash) return
+    window.history.replaceState(null, '', window.location.pathname + window.location.search)
+  }, [expiredLink])
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -168,12 +183,14 @@ export function ResetPasswordPage() {
     toast('Your password has been updated.')
   }
 
+  const linkInvalid = expiredLink || (noSession && !done)
+
   return <AuthShell title="Set new password" subtitle="Choose a strong password for your account.">
-    {done ? <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="space-y-5 text-center"><motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200, delay: 0.1 }} className="mx-auto grid size-16 place-items-center rounded-3xl bg-teal-50 text-teal-600 dark:bg-teal-950"><LockKeyhole className="size-7"/></motion.div><h2 className="font-display text-xl font-semibold">Password updated</h2><p className="mx-auto max-w-sm text-sm text-slate-500">Your password has been changed successfully. You can now sign in with your new password.</p><Button className="mx-auto" onClick={() => navigate('/login')}>Continue to sign in <ArrowRight className="size-4"/></Button></motion.div> : <form onSubmit={submit} className="space-y-5">
+    {linkInvalid ? <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="space-y-5 text-center"><motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200, delay: 0.1 }} className="mx-auto grid size-16 place-items-center rounded-3xl bg-rose-50 text-rose-600 dark:bg-rose-950"><KeyRound className="size-7"/></motion.div><h2 className="font-display text-xl font-semibold">Link expired</h2><p className="mx-auto max-w-sm text-sm text-slate-500">This password reset link is invalid, expired, or was already used. Reset links work only once, so please request a fresh one.</p><Button className="mx-auto" onClick={() => navigate('/forgot-password')}>Request a new link <ArrowRight className="size-4"/></Button></motion.div> : done ? <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="space-y-5 text-center"><motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200, delay: 0.1 }} className="mx-auto grid size-16 place-items-center rounded-3xl bg-teal-50 text-teal-600 dark:bg-teal-950"><LockKeyhole className="size-7"/></motion.div><h2 className="font-display text-xl font-semibold">Password updated</h2><p className="mx-auto max-w-sm text-sm text-slate-500">Your password has been changed successfully. You can now continue to your dashboard.</p><Button className="mx-auto" onClick={() => navigate('/dashboard')}>Continue to dashboard <ArrowRight className="size-4"/></Button></motion.div> : <form onSubmit={submit} className="space-y-5">
       <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}><Field label="New password" error={undefined}><div className="relative"><Input type={show ? 'text' : 'password'} autoComplete="new-password" placeholder="At least 8 characters" value={password} onChange={e => setPassword(e.target.value)}/><button type="button" className="absolute right-3 top-3 text-slate-400" onClick={() => setShow(!show)} aria-label="Toggle password visibility">{show ? <EyeOff className="size-5"/> : <Eye className="size-5"/>}</button></div></Field></motion.div>
       <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }}><Field label="Confirm password" error={undefined}><Input type={show ? 'text' : 'password'} autoComplete="new-password" placeholder="Repeat your password" value={confirm} onChange={e => setConfirm(e.target.value)}/></Field></motion.div>
       {error && <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}><ErrorBox message={error}/></motion.div>}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}><Button className="w-full" disabled={loading}>{loading ? <LoaderCircle className="size-4 animate-spin"/> : <>Update password <ArrowRight className="size-4"/></>}</Button></motion.div>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}><Button className="w-full" disabled={loading || authLoading}>{loading || authLoading ? <LoaderCircle className="size-4 animate-spin"/> : <>Update password <ArrowRight className="size-4"/></>}</Button></motion.div>
       <p className="text-center text-sm text-slate-500"><Link to="/login" className="font-semibold text-teal-700 hover:underline">Back to sign in</Link></p>
     </form>}
   </AuthShell>

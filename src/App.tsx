@@ -3,7 +3,7 @@ import { AnimatePresence } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ArrowLeft, Building2 } from 'lucide-react'
-import { AuthProvider } from './lib/auth'
+import { AuthProvider, useAuth } from './lib/auth'
 import { ThemeProvider } from './lib/theme'
 import { ToastProvider, Button } from './components/ui'
 import { LoginPage, SignupPage, ForgotPasswordPage, ResetPasswordPage } from './features/auth/AuthPages'
@@ -47,9 +47,21 @@ function StatusPage({ code, title, message }: { code: string; title: string; mes
   return <main className="grid min-h-screen place-items-center bg-slate-50 p-6 text-center dark:bg-slate-950"><div><div className="mx-auto mb-7 grid size-14 place-items-center rounded-2xl bg-teal-600 text-white"><Building2/></div><p className="font-display text-8xl font-semibold tracking-tighter text-teal-700/20 dark:text-teal-300/20">{code}</p><h1 className="-mt-6 font-display text-3xl font-semibold">{title}</h1><p className="mx-auto mt-3 max-w-md text-slate-500">{message}</p><Button className="mt-7" onClick={goBack}><ArrowLeft className="size-4"/>Go back</Button></div></main>
 }
 
+function RecoveryRouteGuard() {
+  const { isRecovery } = useAuth()
+  const location = useLocation()
+  if (location.pathname === '/reset-password') return null
+  if (isRecovery) return <Navigate to="/reset-password" replace />
+  const hash = window.location.hash
+  if (hash.includes('error_code=') || hash.includes('access_denied') || hash.includes('error=')) {
+    return <Navigate to={{ pathname: '/reset-password', hash }} replace />
+  }
+  return null
+}
+
 function AppRoutes() {
   const location = useLocation()
-  return <AnimatePresence mode="wait"><Routes location={location} key={location.pathname}>
+  return <><RecoveryRouteGuard/><AnimatePresence mode="wait"><Routes location={location} key={location.pathname}>
     <Route path="/" element={<PageTransition><LandingPage/></PageTransition>}/>
     <Route path="/discover" element={<PageTransition><PublicSearchPage/></PageTransition>}/>
     <Route path="/buy" element={<PageTransition><PublicSearchPage/></PageTransition>}/>
@@ -80,7 +92,7 @@ function AppRoutes() {
     </Route>
     <Route path="/error" element={<StatusPage code="500" title="Something went sideways" message="We couldn't complete that request. Your data is safe — please try again."/>}/>
     <Route path="*" element={<StatusPage code="404" title="This page moved on" message="The page you're looking for doesn't exist or may have a new address."/>}/>
-  </Routes></AnimatePresence>
+  </Routes></AnimatePresence></>
 }
 
 function App() {
