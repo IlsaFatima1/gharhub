@@ -85,7 +85,6 @@ export function SignupPage() {
   const submit = async (values: SignupFields) => {
     const result = await signUp(values.name, values.email, values.password, values.marketplaceRole as MarketplaceRole)
     if (result.error) {
-      if (result.error === '__EMAIL_CONFIRMATION__') { toast('Please check your email to confirm your account.'); navigate('/login'); return }
       setError('root', { message: result.error })
       return
     }

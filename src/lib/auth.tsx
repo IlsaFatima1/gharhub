@@ -44,7 +44,6 @@ function mapUser(u: SupabaseUser, profile?: { full_name?: string; avatar_url?: s
 function friendlyError(message: string): string {
   const m = message.toLowerCase()
   if (m.includes('invalid login credentials') || m.includes('invalid email or password')) return 'Email or password is incorrect.'
-  if (m.includes('email not confirmed')) return 'Please verify your email before signing in.'
   if (m.includes('user already registered')) return 'An account with this email already exists.'
   if (m.includes('password should be at least')) return 'Password must be at least 8 characters.'
   if (m.includes('unable to validate email address')) return 'Please enter a valid email address.'
@@ -164,7 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
     if (error) return { error: friendlyError(error.message) }
     if (data.user && !data.session) {
-      return { error: '__EMAIL_CONFIRMATION__' }
+      return { error: 'Your account was created, but we could not sign you in automatically. Please sign in.' }
     }
     return {}
   }, [])
