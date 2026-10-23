@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
@@ -81,15 +81,22 @@ export function SignupPage() {
   const { toast } = useToast()
   const [show, setShow] = useState(false)
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError, watch } = useForm<SignupFields>({ resolver: zodResolver(signupSchema), defaultValues: { marketplaceRole: 'buyer' } })
+  const signupInFlight = useRef(false)
   if (user) return <Navigate to="/dashboard" replace />
   const submit = async (values: SignupFields) => {
-    const result = await signUp(values.name, values.email, values.password, values.marketplaceRole as MarketplaceRole)
-    if (result.error) {
-      setError('root', { message: result.error })
-      return
+    if (signupInFlight.current) return
+    signupInFlight.current = true
+    try {
+      const result = await signUp(values.name, values.email, values.password, values.marketplaceRole as MarketplaceRole)
+      if (result.error) {
+        setError('root', { message: result.error })
+        return
+      }
+      toast('Your workspace is ready.')
+      navigate('/dashboard')
+    } finally {
+      signupInFlight.current = false
     }
-    toast('Your workspace is ready.')
-    navigate('/dashboard')
   }
   const selectedRole = watch('marketplaceRole')
   return <AuthShell title="Create your account" subtitle="Set up your secure GharHub workspace.">

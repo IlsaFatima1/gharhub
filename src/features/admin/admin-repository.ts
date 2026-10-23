@@ -157,32 +157,8 @@ export const adminRepository={
   },
   async reviewRoleRequest(id:string,status:RoleRequestStatus,adminNotes:string):Promise<void>{
     if(!supabase)return
-    const reviewedAt=new Date().toISOString()
-    const {error}=await supabase.from('role_requests').update({status,admin_notes:adminNotes||null,reviewed_at:reviewedAt}).eq('id',id)
+    if(status==='pending')throw new Error('A reviewed request cannot be set back to pending.')
+    const {error}=await supabase.rpc('admin_review_role_request',{target_request:id,next_status:status,notes:adminNotes||null})
     if(error)errorFor(error)
-    const {data:{user}}=await supabase.auth.getUser()
-    if(user){
-      await supabase.from('admin_audit_logs').insert({
-        admin_id:user.id,
-        action:`${status}_role_request`,
-        entity_type:'role_request',
-        entity_id:id,
-      })
-    }
-    const {data:req}=await supabase.from('role_requests').select('user_id,requested_role').eq('id',id).single()
-    if(req){
-      if(status==='approved'){
-        const {error:profileError}=await supabase.from('profiles').update({marketplace_role:req.requested_role}).eq('user_id',req.user_id)
-        if(profileError)errorFor(profileError)
-      }
-      await supabase.from('notifications').insert({
-        user_id:req.user_id,
-        type:'role_request',
-        title:`Role request ${status}`,
-        body:`Your request to switch to ${req.requested_role} has been ${status}${adminNotes?`: ${adminNotes}`:''}.`,
-        action_url:'/dashboard/account',
-        metadata:{role_request_id:id},
-      })
-    }
   },
 }

@@ -44,11 +44,14 @@ function mapUser(u: SupabaseUser, profile?: { full_name?: string; avatar_url?: s
 function friendlyError(message: string): string {
   const m = message.toLowerCase()
   if (m.includes('invalid login credentials') || m.includes('invalid email or password')) return 'Email or password is incorrect.'
+  if (m.includes('email not confirmed')) return 'Your email address is not confirmed yet. Open the confirmation link we emailed you, then sign in again.'
   if (m.includes('user already registered')) return 'An account with this email already exists.'
   if (m.includes('password should be at least')) return 'Password must be at least 8 characters.'
   if (m.includes('unable to validate email address')) return 'Please enter a valid email address.'
   if (m.includes('new password should be different')) return 'Your new password must be different from the old one.'
   if (m.includes('session not found') || m.includes('invalid token') || m.includes('expired')) return 'This link has expired. Please request a new password reset.'
+  const wait = m.match(/only request this after (\d+) seconds?/)
+  if (wait) return `Too many attempts. Please wait ${wait[1]} seconds and try again.`
   if (m.includes('rate limit')) return 'Too many attempts. Please try again later.'
   return 'Something went wrong. Please try again.'
 }
