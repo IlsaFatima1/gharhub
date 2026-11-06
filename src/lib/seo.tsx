@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { SITE_NAME, SITE_URL } from './site'
+import { SITE_NAME, SITE_OG_IMAGE, SITE_URL } from './site'
 
 export type RobotsDirective = 'index, follow' | 'noindex, nofollow'
 
@@ -72,7 +72,7 @@ export function Seo({
   jsonLd,
 }: SeoProps) {
   useEffect(() => {
-    document.title = title ? `${title} | ${SITE_NAME}` : SITE_NAME
+    document.title = title ? (title.includes(SITE_NAME) ? title : `${title} | ${SITE_NAME}`) : SITE_NAME
 
     upsertMeta('name', 'description', description ?? '')
     upsertMeta('name', 'robots', robots)
@@ -84,7 +84,7 @@ export function Seo({
     upsertMeta('property', 'og:title', ogTitle ?? title ?? SITE_NAME)
     upsertMeta('property', 'og:description', ogDescription ?? description ?? '')
     if (canonicalPath) upsertMeta('property', 'og:url', absoluteUrl(canonicalPath))
-    const image = ogImage ?? (canonicalPath && canonicalPath.includes('/properties/') ? undefined : '/properties/modern-villa.jpg')
+    const image = ogImage ?? (canonicalPath && canonicalPath.includes('/properties/') ? undefined : SITE_OG_IMAGE)
     if (image) upsertMeta('property', 'og:image', absoluteUrl(image))
 
     upsertMeta('name', 'twitter:card', 'summary_large_image')

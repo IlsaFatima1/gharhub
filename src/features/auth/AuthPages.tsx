@@ -8,6 +8,7 @@ import { ArrowRight, Building2, Eye, EyeOff, Home, KeyRound, LoaderCircle, LockK
 import { Button, Input, useToast } from '../../components/ui'
 import { useAuth } from '../../lib/auth'
 import { Seo } from '../../lib/seo'
+import { trackEvent } from '../../lib/analytics'
 import type { MarketplaceRole } from '../../lib/auth'
 
 const loginSchema = z.object({ email: z.string().email('Enter a valid email address.'), password: z.string().min(8, 'Use at least 8 characters.') })
@@ -53,12 +54,14 @@ export function LoginPage() {
   const location = useLocation()
   const { toast } = useToast()
   const [show, setShow] = useState(false)
-  const from = (location.state as { from?: string })?.from ?? '/dashboard'
+  const fromRaw = (location.state as { from?: string })?.from ?? '/dashboard'
+  const from = fromRaw.startsWith('/') && !fromRaw.startsWith('//') && !/[\r\n:]/.test(fromRaw) ? fromRaw : '/dashboard'
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<LoginFields>({ resolver: zodResolver(loginSchema) })
   if (user) return <Navigate to={isRecovery ? '/reset-password' : from} replace />
   const submit = async (values: LoginFields) => {
     const result = await signIn(values.email, values.password)
     if (result.error) { setError('root', { message: result.error }); return }
+    trackEvent('login')
     toast('Welcome back to GharHub.')
     navigate(from)
   }
@@ -93,6 +96,7 @@ export function SignupPage() {
         return
       }
       toast('Your workspace is ready.')
+      trackEvent('signup', { role: values.marketplaceRole })
       navigate('/dashboard')
     } finally {
       signupInFlight.current = false

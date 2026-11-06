@@ -9,6 +9,7 @@ import { displayPropertyType } from './types'
 import type { PropertyFormValues } from './schema'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../lib/auth'
+import { trackEvent } from '../../lib/analytics'
 
 type SellerStats = {
   totalListings: number
@@ -204,6 +205,7 @@ export function NewPropertyPage() {
   const save = async (values: PropertyFormValues, publish: boolean) => {
     try {
       const property = await create(values, publish)
+      trackEvent('listing_created', { published: publish, property_type: values.propertyType ?? '' })
       toast(publish ? `Saved to the database and published. Reference: ${property.id.slice(0,8)}.` : 'Saved to the database as a private draft. Publish it before other accounts can discover it.')
       navigate('/dashboard/properties')
     } catch (error) {

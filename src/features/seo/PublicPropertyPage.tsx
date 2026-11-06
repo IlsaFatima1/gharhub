@@ -4,7 +4,8 @@ import { ArrowLeft, Bath, BedDouble, Building2, MapPin, Square } from 'lucide-re
 import { propertyRepository } from '../properties/property-repository'
 import { displayPropertyType, type Property } from '../properties/types'
 import { Seo } from '../../lib/seo'
-import { SITE_NAME } from '../../lib/site'
+import { SITE_NAME, SITE_URL } from '../../lib/site'
+import { trackEvent } from '../../lib/analytics'
 import { parsePropertySlug, primaryImage, propertyDescription, propertyImageAlt, propertyTitle } from '../../lib/property-seo'
 import { waLink } from '../../lib/whatsapp'
 
@@ -47,7 +48,7 @@ export function PublicPropertyPage() {
         const p = await propertyRepository.getById(id)
         if (cancelled) return
         // RLS ensures anonymous users only see published properties.
-        if (p && p.status === 'published') setProperty(p)
+        if (p && p.status === 'published') { setProperty(p); trackEvent('property_view', { property_id: p.id, purpose: p.purpose, area: p.area ?? '' }) }
         else setNotFound(true)
       } catch {
         if (!cancelled) setNotFound(true)
@@ -92,19 +93,19 @@ export function PublicPropertyPage() {
         ogTitle={propertyTitle(property)}
         ogDescription={propertyDescription(property)}
         jsonLd={[
-          propertyJsonLd(property, `https://gharhub.site${canonicalPath}`),
+          propertyJsonLd(property, `${SITE_URL}${canonicalPath}`),
           {
             '@context': 'https://schema.org',
             '@type': 'BreadcrumbList',
             itemListElement: [
-              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://gharhub.site/' },
+              { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE_URL}/` },
               {
                 '@type': 'ListItem',
                 position: 2,
                 name: property.area || property.city || 'Discover',
-                item: 'https://gharhub.site/discover',
+                item: `${SITE_URL}/discover`,
               },
-              { '@type': 'ListItem', position: 3, name: property.title, item: `https://gharhub.site${canonicalPath}` },
+              { '@type': 'ListItem', position: 3, name: property.title, item: `${SITE_URL}${canonicalPath}` },
             ],
           },
         ]}
@@ -176,6 +177,7 @@ export function PublicPropertyPage() {
                 href={wa}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => trackEvent('whatsapp_click', { property_id: property.id, purpose: property.purpose })}
                 className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-[#25D366] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#1ebe5b] sm:w-auto sm:inline-flex"
               >
                 Chat on WhatsApp

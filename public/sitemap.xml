@@ -1,32 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://gharhub.site/</loc>
+    <loc>https://www.gharhub.site/</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://gharhub.site/discover</loc>
+    <loc>https://www.gharhub.site/discover</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://gharhub.site/buy</loc>
+    <loc>https://www.gharhub.site/buy</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://gharhub.site/rent</loc>
+    <loc>https://www.gharhub.site/rent</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://gharhub.site/privacy</loc>
+    <loc>https://www.gharhub.site/privacy</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://gharhub.site/terms</loc>
+    <loc>https://www.gharhub.site/terms</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>

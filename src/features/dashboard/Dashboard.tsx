@@ -42,13 +42,13 @@ export function DashboardHome() {
     </motion.div>
 
     <div className="mt-8 grid gap-4 md:grid-cols-3">
-      <Stat label="Account status" value="Verified" detail="Identity confirmed" tone="teal" delay={0.1}/>
+      <Stat label="Account status" value="Active" detail="Signed in and ready" tone="teal" delay={0.1}/>
       <Stat label="Profile strength" value="80%" detail="One step remaining" tone="orange" delay={0.2}/>
       <Stat label="Member since" value={new Date(user?.joinedAt ?? '').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} detail="GharHub member" tone="slate" delay={0.3}/>
     </div>
 
     <div className="mt-6 grid gap-4 sm:grid-cols-3">
-      {!isSeller && <QuickAction icon={Compass} label="Discover properties" desc="Search verified listings across Karachi" path="/dashboard/search" color="teal" delay={0.15}/>}
+      {!isSeller && <QuickAction icon={Compass} label="Discover properties" desc="Search listings across Karachi" path="/dashboard/search" color="teal" delay={0.15}/>}
       <QuickAction icon={Sparkles} label="AI Matches" desc="Find properties matching your preferences" path="/dashboard/ai-recommendations" color="violet" delay={0.25}/>
       {isSeller && <QuickAction icon={HousePlus} label="Add property" desc="Create a new listing for sale or rent" path="/dashboard/properties/new" color="teal" delay={0.25}/>}
     </div>

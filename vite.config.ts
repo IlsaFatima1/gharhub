@@ -16,5 +16,17 @@ export default defineConfig(async ({ mode }) => {
     plugins,
     envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
     define: processEnvDefines,
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+            supabase: ['@supabase/supabase-js'],
+            'framer-motion': ['framer-motion'],
+            query: ['@tanstack/react-query'],
+          },
+        },
+      },
+    },
   };
 })

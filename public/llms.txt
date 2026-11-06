@@ -1,0 +1,32 @@
+# GharHub — Karachi Property Marketplace
+
+> GharHub (https://www.gharhub.site) helps buyers and renters discover properties for sale and rent across Karachi, Pakistan. Sellers can list properties, and both sides can connect directly. All marketplace content shown on public pages comes from the live GharHub database of published listings.
+
+GharHub covers property types including houses, apartments, villas, townhouses, land, commercial spaces, shops and offices, across Karachi areas such as DHA, Clifton, Gulshan-e-Iqbal, North Nazimabad, PECHS, Bahria Town and surrounding localities.
+
+## Public pages
+
+- Homepage: https://www.gharhub.site/
+- Discover / search all listings: https://www.gharhub.site/discover
+- Properties for sale in Karachi: https://www.gharhub.site/buy
+- Properties for rent in Karachi: https://www.gharhub.site/rent
+- Individual property pages: https://www.gharhub.site/properties/<slug> (published listings only)
+- Privacy Policy: https://www.gharhub.site/privacy
+- Terms of Service: https://www.gharhub.site/terms
+
+## What you can do on the public site
+
+- Browse and search published property listings for sale and rent in Karachi
+- Filter by area, property type, price and purpose (sale/rent)
+- View real listing details: price (PKR), bedrooms, bathrooms, area in square feet and map location
+- Sign in (https://www.gharhub.site/signup) to save favorite listings and contact sellers via WhatsApp
+
+## What is not public
+
+- Seller dashboards, listings management, messaging, notifications and team features require authentication
+- Draft and unpublished listings are not publicly accessible
+- User accounts and private contact details are never exposed publicly
+
+## Contact
+
+- Support: support@gharhub.site

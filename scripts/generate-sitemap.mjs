@@ -16,10 +16,29 @@
  * Env:    SUPABASE_URL, SUPABASE_ANON_KEY  (fall back to VITE_* for Vite)
  */
 import { createClient } from '@supabase/supabase-js'
-import { writeFile } from 'node:fs/promises'
+import { writeFile, readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
-const SITE_URL = 'https://gharhub.site'
+// Minimal .env loader (Vite loads these for the app, but plain `node` does not).
+// Never logs values — only which file was read.
+async function loadEnvFiles() {
+  for (const name of ['.env.local', '.env']) {
+    try {
+      const raw = await readFile(resolve(name), 'utf8')
+      for (const line of raw.split('\n')) {
+        const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/)
+        if (!m || line.trim().startsWith('#')) continue
+        const key = m[1]
+        let value = m[2].trim()
+        if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) value = value.slice(1, -1)
+        if (!process.env[key]) process.env[key] = value
+      }
+    } catch { /* file absent — fine */ }
+  }
+}
+await loadEnvFiles()
+
+const SITE_URL = 'https://www.gharhub.site'
 const OUT = resolve('public/sitemap.xml')
 
 const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL

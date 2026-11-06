@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../lib/auth'
+import { trackEvent } from '../../lib/analytics'
 
 export function useFavorites() {
   const { user } = useAuth()
@@ -40,6 +41,7 @@ export function useFavorites() {
         const { error } = await supabase.from('favorites').insert({ property_id: propertyId, user_id: authUser.id })
         if (error) { console.error('[favorites] insert error:', error.message, error.code, error.details); throw error }
       }
+      trackEvent('favorite_toggle', { property_id: propertyId, added: !wasFavorited })
       return !wasFavorited
     } catch (e) {
       setIds(prev => { const next = new Set(prev); if (wasFavorited) next.add(propertyId); else next.delete(propertyId); return next })

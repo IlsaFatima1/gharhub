@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { Bath, BedDouble, MapPin, Search, Square } from 'lucide-react'
 import { propertyRepository } from '../properties/property-repository'
 import { displayPropertyType, type Property } from '../properties/types'
 import { Seo } from '../../lib/seo'
 import { KARACHI_AREAS } from '../../lib/karachi'
 import { propertyImageAlt, primaryImage } from '../../lib/property-seo'
+import { trackEvent } from '../../lib/analytics'
 
 type Mode = 'discover' | 'buy' | 'rent'
 
@@ -13,29 +14,31 @@ const PAGE_TITLES: Record<Mode, { title: string; description: string; h1: string
   discover: {
     title: 'Property Search & Discover in Karachi',
     description:
-      'Discover verified properties for sale and rent across Karachi. Search by area, property type, bedrooms, budget and more on GharHub.',
+      'Discover properties for sale and rent across Karachi. Search by area, property type, bedrooms, budget and more on GharHub.',
     h1: 'Discover Properties in Karachi',
     canonical: '/discover',
   },
   buy: {
     title: 'Properties for Sale in Karachi',
     description:
-      'Browse houses, apartments, villas and more for sale across Karachi. Verified listings with real prices, photos and locations on GharHub.',
+      'Browse houses, apartments, villas and more for sale across Karachi, with real prices, photos and locations on GharHub.',
     h1: 'Properties for Sale in Karachi',
     canonical: '/buy',
   },
   rent: {
     title: 'Properties for Rent in Karachi',
     description:
-      'Find houses, apartments, villas and more for rent across Karachi. Verified listings with real prices, photos and locations on GharHub.',
+      'Find houses, apartments, villas and more for rent across Karachi, with real prices, photos and locations on GharHub.',
     h1: 'Properties for Rent in Karachi',
     canonical: '/rent',
   },
 }
 
 export function PublicSearchPage() {
-  const { mode = 'discover' } = useParams<{ mode?: Mode }>()
-  const page = PAGE_TITLES[mode] || PAGE_TITLES.discover
+  // Routes /discover, /buy, /rent are separate entries with no :mode param, so derive mode from the pathname.
+  const { pathname } = useLocation()
+  const mode: Mode = pathname.startsWith('/buy') ? 'buy' : pathname.startsWith('/rent') ? 'rent' : 'discover'
+  const page = PAGE_TITLES[mode]
   const [properties, setProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -46,6 +49,22 @@ export function PublicSearchPage() {
   const [maxPrice, setMaxPrice] = useState('')
 
   const hasActiveFilter = Boolean(query || area || propertyType || minPrice || maxPrice)
+  const analyticsMounted = useRef(false)
+
+  // Debounced search/filter analytics — never fires on initial mount, sends no personal data.
+  useEffect(() => {
+    if (!analyticsMounted.current) {
+      analyticsMounted.current = true
+      return
+    }
+    const t = setTimeout(() => {
+      if (query.trim()) trackEvent('search', { query: query.trim().slice(0, 80), mode })
+      else if (area || propertyType || minPrice || maxPrice) {
+        trackEvent('filter_used', { area, property_type: propertyType, mode })
+      }
+    }, 600)
+    return () => clearTimeout(t)
+  }, [mode, query, area, propertyType, minPrice, maxPrice])
   const purpose: Property['purpose'] | '' = mode === 'buy' ? 'sale' : mode === 'rent' ? 'rent' : ''
 
   useEffect(() => {
