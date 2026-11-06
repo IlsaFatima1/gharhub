@@ -191,9 +191,24 @@ export function PublicSearchPage() {
         ) : error ? (
           <p className="mt-8 text-center text-sm text-rose-600">{error}</p>
         ) : properties.length === 0 ? (
-          <p className="mt-10 py-10 text-center text-slate-500">
-            No {mode === 'discover' ? '' : mode === 'buy' ? 'properties for sale' : 'properties for rent'} match your filters yet.
-          </p>
+          <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-slate-900">
+            <p className="text-slate-600 dark:text-slate-300">
+              No properties{mode === 'buy' ? ' for sale' : mode === 'rent' ? ' for rent' : ''} match your filters yet.
+            </p>
+            <p className="mt-2 text-sm text-slate-500">
+              Sellers publish listings directly, so new properties appear here as they are added. You can also browse{' '}
+              {mode !== 'buy' && (
+                <Link className="font-semibold text-teal-700 underline dark:text-teal-400" to="/buy">properties for sale</Link>
+              )}
+              {mode === 'discover' && ' or '}
+              {mode !== 'rent' && (
+                <Link className="font-semibold text-teal-700 underline dark:text-teal-400" to="/rent">properties for rent</Link>
+              )}
+              {mode !== 'discover' && (
+                <> or <Link className="font-semibold text-teal-700 underline dark:text-teal-400" to="/discover">all properties</Link></>
+              )}.
+            </p>
+          </div>
         ) : (
           <div className="mt-8">
             {grouped.map(([groupName, group]) => (
